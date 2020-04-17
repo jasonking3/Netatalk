@@ -145,9 +145,10 @@ static int pwd_login(void *obj, char *username, int ulen, struct passwd **uam_pw
     }
 
     /* generate key and make sure we have enough space */
-    dh->p = pbn;
-    dh->g = gbn;
-    if (!DH_generate_key(dh) || (BN_num_bytes(dh->pub_key) > KEYSIZE)) {
+    if (!DH_set0_pqg(dh, pbn, NULL, gbn)) {
++      goto passwd_fail;
++   }
+    if (!DH_generate_key(dh) || (BN_num_bytes(DH_get0_pub_key(dh)) > KEYSIZE)) {
       goto passwd_fail;
     }
 
@@ -164,7 +165,7 @@ static int pwd_login(void *obj, char *username, int ulen, struct passwd **uam_pw
     *rbuflen += sizeof(sessid);
     
     /* send our public key */
-    BN_bn2bin(dh->pub_key, (unsigned char *)rbuf); 
+    BN_bn2bin(DH_get0_pub_key(dh), (unsigned char *)rbuf);
     rbuf += KEYSIZE;
     *rbuflen += KEYSIZE;
 
